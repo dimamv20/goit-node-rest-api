@@ -7,7 +7,8 @@ import {
 
 export const getAllContacts = async (req, res, next) => {
   try {
-    const contacts = await contactsService.listContacts();
+    const owner = req.user.id;
+    const contacts = await contactsService.listContacts(owner);
     res.status(200).json(contacts);
   } catch (error) {
     next(error);
@@ -16,8 +17,12 @@ export const getAllContacts = async (req, res, next) => {
 
 export const getContactById = async (req, res, next) => {
   try {
+    
+    const owner = req.user.id;
+
     const { id } = req.params;
-    const contact = await contactsService.getContactById(id);
+
+    const contact = await contactsService.getContactById(owner, id);
     if (!contact) {
       return res.status(404).json({ message: "Not found" });
     }
@@ -29,8 +34,11 @@ export const getContactById = async (req, res, next) => {
 
 export const deleteContact = async (req, res, next) => {
   try {
+
+    const owner = req.user.id;
+
     const { id } = req.params;
-    const contact = await contactsService.removeContact(id);
+    const contact = await contactsService.removeContact(owner, id);
     if (!contact) {
       return res.status(404).json({ message: "Not found" });
     }
@@ -46,7 +54,8 @@ export const addContact = async (req, res, next) => {
     if (error) {
       return res.status(400).json({ message: error.message });
     }
-    const newContact = await contactsService.addContact(req.body);
+    const owner = req.user.id;
+    const newContact = await contactsService.addContact(owner, req.body);
     res.status(201).json(newContact);
   } catch (error) {
     next(error);
@@ -64,8 +73,10 @@ export const updateContact = async (req, res, next) => {
     if (error) {
       return res.status(400).json({ message: error.message });
     }
+
+    const owner = req.user.id;
     const { id } = req.params;
-    const updated = await contactsService.updateContact(id, req.body);
+    const updated = await contactsService.updateContact(owner, id, req.body);
     if (!updated) {
       return res.status(404).json({ message: "Not found" });
     }
@@ -81,9 +92,12 @@ export const updateFavoriteStatus = async (req, res, next) => {
     if (error) {
       return res.status(400).json({ message: error.message });
     }
+
+    const owner = req.user.id;
     const { contactId } = req.params;
     const { favorite } = req.body;
     const updated = await contactsService.updateStatusContact(
+      owner,
       contactId,
       favorite
     );
