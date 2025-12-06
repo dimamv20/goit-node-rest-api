@@ -7,6 +7,14 @@ import {
   updateSubscriptionSchema,
 } from "../schemas/authSchemas.js";
 
+
+import path from "path";
+import { fileURLToPath } from "url";
+import gravatar from "gravatar";
+
+
+const avatar = path.join(__dirname, "../public/avatars");
+
 const JWT_SECRET = "super_secret_jwt_key";
 
 export const register = async (req, res, next) => {
@@ -16,7 +24,7 @@ export const register = async (req, res, next) => {
       return res.status(400).json({ message: error.message });
     }
 
-    const { email, password } = req.body;
+    const { email, password, subscription } = req.body;
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
@@ -24,6 +32,8 @@ export const register = async (req, res, next) => {
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
+    const avatarURL = gravatar.url(email, { s: "200", r: "pg", d: "mm" });
+    
 
     const user = await User.create({
       email,
@@ -34,6 +44,7 @@ export const register = async (req, res, next) => {
       user: {
         email: user.email,
         subscription: user.subscription,
+        avatarURL,
       },
     });
   } catch (error) {
@@ -86,7 +97,7 @@ export const logout = async (req, res, next) => {
       return res.status(401).json({ message: "Not authorized" });
     }
 
-    await user.update({ token: null });
+    await User.update({ token: null });
 
     res.status(204).send();
   } catch (error) {
@@ -122,6 +133,36 @@ export const updateSubscription = async (req, res, next) => {
       email: user.email,
       subscription: user.subscription,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const updateAvatar = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Avatar file must be" });
+    }
+
+    const {path: temppath, originalname} = req.file;
+    const ext = path.extname(originalname);
+
+    const filename = `${req.user.id}${ext}`;
+    const resultPath = path.join(avatar, filename);
+
+    await fs.rename(temppath, resultPath);
+    const avatarURL = 'avatars/${filename}';
+
+    await User.update({ avatarURL },
+      { where: { id: req.user.id } }
+    );
+
+    res.status(200).json({ avatarURL });
   } catch (error) {
     next(error);
   }

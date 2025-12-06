@@ -29,7 +29,8 @@ export const Contact = sequelize.define(
   {
     tableName: "contacts",
     timestamps: false,
-  }
+  },
+  
 );
 
 
