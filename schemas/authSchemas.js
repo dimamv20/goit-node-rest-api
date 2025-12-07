@@ -26,6 +26,9 @@ export const updateSubscriptionSchema = Joi.object({
     subscription : Joi.string().valid("starter", "pro", "business").required().messages({
         "any.required": "Subscription is required",
         "any.only": "Subscription must be one of 'starter', 'pro', or 'business'",
-
     }),
+});
+
+export const verifyEmailSchema = Joi.object({
+    email: Joi.string().email().required(),
 });
