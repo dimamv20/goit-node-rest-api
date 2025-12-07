@@ -4,6 +4,7 @@ import {
   updateContactSchema,
   updateStatusSchema,
 } from "../schemas/contactsSchemas.js";
+import { Http2ServerRequest } from "http2";
 
 export const getAllContacts = async (req, res, next) => {
   try {
@@ -40,7 +41,7 @@ export const deleteContact = async (req, res, next) => {
     const { id } = req.params;
     const contact = await contactsService.removeContact(owner, id);
     if (!contact) {
-      return res.status(404).json({ message: "Not found" });
+      throw  res.status(404).json({ message: "Not found" });
     }
     res.status(200).json(contact);
   } catch (error) {
@@ -52,7 +53,7 @@ export const addContact = async (req, res, next) => {
   try {
     const { error } = createContactSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({ message: error.message });
+      throw HttpError(400, error.message);
     }
     const owner = req.user.id;
     const newContact = await contactsService.addContact(owner, req.body);
@@ -71,14 +72,14 @@ export const updateContact = async (req, res, next) => {
     }
     const { error } = updateContactSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({ message: error.message });
+      throw HttpError(400, error.message);
     }
 
     const owner = req.user.id;
     const { id } = req.params;
     const updated = await contactsService.updateContact(owner, id, req.body);
     if (!updated) {
-      return res.status(404).json({ message: "Not found" });
+      throw HttpError(404, "Not found");
     }
     res.status(200).json(updated);
   } catch (error) {
@@ -90,7 +91,7 @@ export const updateFavoriteStatus = async (req, res, next) => {
   try {
     const { error } = updateStatusSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({ message: error.message });
+      throw HttpError(400, error.message);
     }
 
     const owner = req.user.id;
@@ -102,7 +103,7 @@ export const updateFavoriteStatus = async (req, res, next) => {
       favorite
     );
     if (!updated) {
-      return res.status(404).json({ message: "Not found" });
+      throw HttpError(404, "Not found");
     }
     res.status(200).json(updated);
   } catch (error) {

@@ -1,6 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User } from "../db/userModel.js";
+
+import fs from "fs/promises";
+
+
 import {
   registerSchema,
   loginSchema,
@@ -11,24 +15,28 @@ import {
 import path from "path";
 import { fileURLToPath } from "url";
 import gravatar from "gravatar";
+import { HttpError } from "../helpers/HttpError.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+const avatarsDir = path.join(__dirname, "../public/avatars");
 const avatar = path.join(__dirname, "../public/avatars");
 
-const JWT_SECRET = "super_secret_jwt_key";
+const JWT_SECRET = "ultra_super_secret_key_051220252102";
 
 export const register = async (req, res, next) => {
   try {
     const { error } = registerSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({ message: error.message });
+     throw HttpError(400, error.message);
     }
 
     const { email, password, subscription } = req.body;
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(409).json({ message: "Email in use" });
+      throw HttpError(409, ' Email in use');
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
@@ -38,6 +46,8 @@ export const register = async (req, res, next) => {
     const user = await User.create({
       email,
       password: hashPassword,
+      avatarURL,
+      subscription,
     });
 
     res.status(201).json({
@@ -56,19 +66,19 @@ export const login = async (req, res, next) => {
   try {
     const { error } = loginSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({ message: error.message });
+      throw HttpError(400, error.message);
     }
 
     const { email, password } = req.body;
 
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(401).json({ message: "Email or password is wrong" });
+      throw HttpError(401," Email or password is wrong");
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
-      return res.status(401).json({ message: "Email or password is wrong" });
+      throw HttpError(401," Email or password is wrong");
     }
 
     const payload = { id: user.id };
@@ -94,10 +104,12 @@ export const logout = async (req, res, next) => {
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(401).json({ message: "Not authorized" });
+      throw HttpError(401," Not authorized");
     }
 
-    await User.update({ token: null });
+    await user.update({ token: null }, 
+      { where: { id: userId } }
+    );
 
     res.status(204).send();
   } catch (error) {
@@ -118,13 +130,13 @@ export const updateSubscription = async (req, res, next) => {
   try {
     const { error } = updateSubscriptionSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({ message: error.message });
+      throw HttpError(400, error.message);
     }
 
     const userId = req.user.id;
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(401).json({ message: "Not authorized" });
+      throw HttpError(401," Not authorized");
     }
 
     await user.update({ subscription: req.body.subscription });
@@ -142,23 +154,24 @@ export const updateSubscription = async (req, res, next) => {
 export const updateAvatar = async (req, res, next) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ message: "Not authorized" });
+      throw HttpError(401," Not authorized");
     }
 
     if (!req.file) {
-      return res.status(400).json({ message: "Avatar file must be" });
+            throw HttpError(401," Avatar file is required");
     }
 
-    const {path: temppath, originalname} = req.file;
+    const { path: tempPath, originalname } = req.file;
     const ext = path.extname(originalname);
-
     const filename = `${req.user.id}${ext}`;
-    const resultPath = path.join(avatar, filename);
+    const resultPath = path.join(avatarsDir, filename);
 
-    await fs.rename(temppath, resultPath);
-    const avatarURL = 'avatars/${filename}';
+    await fs.rename(tempPath, resultPath);
 
-    await User.update({ avatarURL },
+    const avatarURL = `/public/avatars/${filename}`; 
+
+    await User.update(
+      { avatarURL },
       { where: { id: req.user.id } }
     );
 
