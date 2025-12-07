@@ -6,12 +6,12 @@ const listContacts = async (owner) => {
 };
 
 const getContactById = async (owner, contactId) => {
-  const contact = await Contact.findbyOne({ where : { id: contactId, owner} } );
+  const contact = await Contact.findOne({ where : { id: contactId, owner} } );
   return contact;
 };
 
 const removeContact = async (owner, contactId) => {
-  const contact = await Contact.findbyOne({ where : { id: contactId, owner} });
+  const contact = await Contact.findOne({ where : { id: contactId, owner} });
 
   if (!contact) {
     return null;
@@ -29,7 +29,7 @@ const addContact = async (owner, contactData) => {
 
 const updateContact = async (owner, contactId, contactData) => {
   
-  const contact = await Contact.findByOne( { where : { id: contactId, owner } } );
+  const contact = await Contact.findOne( { where : { id: contactId, owner } } );
 
   if (!contact) {
     return null;
@@ -40,7 +40,7 @@ const updateContact = async (owner, contactId, contactData) => {
 
 const updateStatusContact = async (owner, contactId, favorite) => { 
 
-  const contact = await Contact.findByOne({ where : { id: contacctId, owner } } );
+  const contact = await Contact.findOne({ where : { id: contactId, owner } } );
   
   if (!contact) {
     return null;
